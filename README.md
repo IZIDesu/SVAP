@@ -5,9 +5,10 @@ This project was created to simulate a steering wheel (using keyboard logic) to 
 It has other fictures like autoclick keyboard or autoclick mouse with HUI suport.
 
 All the interactions with SVAP are in CMD!
-becarfull with autoclicker it could become unstable!
-i made it to make the user do what ever you would like but even, so becarfull!
+Becarfull with autoclicker it could become unstable!
+I made it to make the user do what ever you would like but even, so becarfull!
 
 ![image](https://github.com/user-attachments/assets/77e7fe60-0150-49f7-905a-e288aaf7a28e)
 
-there are some abreviations of the recomendation trype if you would like to explore or add new one just change the code as you would like!
+There are some abreviations of the commands.  
+If you would like to explore or add new one just change the code as you would like!
