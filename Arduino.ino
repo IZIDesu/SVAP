@@ -14,6 +14,9 @@ bool runTime = true;
 
 void setup() {
   Serial.begin(9600);  // Start serial communication
+  for(int i=1;i>=13;i++){
+    pinMode(i, INPUT);
+  }
 }
 
 void loop() {
@@ -28,7 +31,7 @@ void loop() {
         ",\nShift:" + String(digitalRead(ShiftBot)) + 
         ",\nS:" + String(digitalRead(Breaker)) + 
         ",\nH:" + String(digitalRead(HornBot)) + 
-        ",\nVangle:" + String(map(analogRead(vPot), 0, 1023, 0, 360)) +
+        ",\nVAngle:" + String(map(analogRead(vPot), 0, 1023, 0 ,360)) +
         ",\nIO:" + String(digitalRead(IO));
 
   
