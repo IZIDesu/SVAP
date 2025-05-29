@@ -3,6 +3,7 @@ from pynput.mouse import Button, Controller
 import threading
 import time
 import serial
+import serial.serialutil
 import serial.tools.list_ports
 
 
@@ -11,9 +12,17 @@ Repeating = False
 repeat_thread = None
 repeat_flag = False
 
+# Place these globally (at the top)
+last_pwm_toggle_time = 0
+turn_key_state = False  # False = released, True = pressed
+turn_key = None
+ 
+last_toggle_was_press = None
+
 On = False
 
 port = None
+arduino = None
 
 last_pwm_time = 0
 accel_pwm = {
@@ -88,7 +97,7 @@ keyboard.add_hotkey('esc', stop_repeat)  # ESC to stop infinite loops
 
 
 while Running:
-    input_command = input("\n\nWhat Command you would like? \ntry: \n R1- repeat the junction of leters (e.g. im here) \n R2 - R1 but leter by leter (e.g. i m space h e r e) \n M1 - mouse buttons \n M2 - mouse buttons \n CC - when you press the active combo it start pressing the key \n") # Include "space" as a word, not just a character
+    input_command = input("\n\nWhat Command you would like? \ntry: \n R1- repeat the junction of leters (e.g. im here) \n R2 - R1 but leter by leter (e.g. i m space h e r e) \n M1 - mouse buttons \n M2 - mouse buttons \n CC - when you press the active combo it start pressing the key \n V - Simulator Mode (need arduino and some phericals) \n") # Include "space" as a word, not just a character
 
     if "quit" in input_command.lower() or "exit" in input_command.lower():
         Running = False
@@ -190,7 +199,6 @@ while Running:
                 if "y" in confirmation or "Y" in confirmation:
                     break
                 else:
-                    
                     continue
 
             repeat_count = int(input("How many times to press the key? (-999 = infinite)\n"))
@@ -211,18 +219,24 @@ while Running:
         for Port in ports:
             print(f"Port: {Port.device}, Description: {Port.description}")
             port = Port.device
-            print(f"port: {Port.device}")
         
-        
-        arduino = serial.Serial(port, 9600, timeout=0.1)
+        if arduino == None:
+            arduino = serial.Serial(port, 9600, timeout=0.1)
+            print(arduino)
         On = True
 
         while On:
+            try:
+                value = read_arduino()
+                line = arduino.readline().decode('utf-8').strip()
+            except serial.serialutil.PortNotOpenError:
+                print("Arduino Port Not Found!\nPlug the arduino into USB port!\n")
+                arduino = None
+                On = False
+                break
 
-            value = read_arduino()
-            line = arduino.readline().decode('utf-8').strip()
             if not line:
-                print(f"line: {line}")
+                #print(f"line: {line}")
                 continue
             
             else:
@@ -235,93 +249,126 @@ while Running:
                         data[key.strip()] = int(val.strip())
 
                 #volante
-                if data.get('V'): #volante pin(A0)
+                #print(data)
+                
+                if data.get('V'):  # volante pin (A0)
                     Turn = data.get('V')
                     print(f"Turn: {Turn}")
-                    if Turn is None:
+
+                    if Turn is None or Turn == 0:
                         Turn = 1
-                    if Turn is not None:
-                        center = 512
-                        now = time.time()
 
-                        if Turn >= center+20:
-                            turn_key = 'd'
-                            turn_strength = (Turn - center) / 512  # Normalize between 0 and ~1
-                            pwm_interval = max(0.02, 0.2 * (1 - turn_strength))  # Higher value = slower tapping
+                    center = 512
+                    now = time.time()
 
-                        elif Turn < center-20:
-                            turn_key = 'a'
-                            turn_strength = (center - Turn) / 512
-                            pwm_interval = max(0.02, 0.2 * (1 - turn_strength))
+                    keyboard.release('a')
+                    keyboard.release('d')
 
-                        else:
-                            turn_key = None  # No steering
+                    if Turn >= center + 20:
+                        turn_key = 'a'
+                        # Normalize strength between 0 and 1
+                        strength = min((Turn - (center + 20)) / (center - 20), 1)
+                    elif Turn <= center - 20:
+                        turn_key = 'd'
+                        strength = min(((center - 20) - Turn) / (center - 20), 1)
+                    else:
+                        turn_key = None
 
-                        # If enough time passed since last PWM tap
-                        if turn_key and now - last_pwm_time > pwm_interval:
-                            keyboard.press(turn_key)
-                            keyboard.release(turn_key)
-                            last_pwm_time = now
+                    base_press = 0.001
+                    max_press = 0.01
+                    release_duration = 0  # fixed short release time
 
-                if data.get('W'): #accelerator pin(A1)
+                    if turn_key:
+                        press_duration = base_press + (max_press - base_press) * strength*2
+
+                        elapsed = now - last_pwm_toggle_time
+
+                        if turn_key_state:  # currently pressed
+                            if elapsed >= press_duration:
+                                keyboard.release(turn_key)
+                                turn_key_state = False
+                                last_pwm_toggle_time = now
+                        else:  # currently released
+                            if elapsed >= release_duration:
+                                keyboard.press(turn_key)
+                                turn_key_state = True
+                                last_pwm_toggle_time = now
+ 
+                if data.get('W'):  # accelerator pin (A1)
                     Accelerate = data.get('W')
                     print(f"Accelerate: {Accelerate}")
-                    if Accelerate is not None:
-                        accel_pwm['strength'] = max(min(Accelerate / 1023.0, 2.0), 0.0)  # Normalize to [0.0, 1.0]
+
+                    if Accelerate is None or Accelerate == 0:
+                        Accelerate = 0
 
                     now = time.time()
-                    elapsed = now - accel_pwm['last_toggle']
-                    press_time = accel_pwm['strength'] * accel_pwm['cycle_time']
-                    rest_time = accel_pwm['cycle_time'] - press_time
 
-                    if accel_pwm['strength'] > 0.05:
-                        if accel_pwm['pressing'] and elapsed >= press_time:
-                            keyboard.release(accel_pwm['key'])
-                            accel_pwm['pressing'] = False
-                            accel_pwm['last_toggle'] = now
-                        elif not accel_pwm['pressing'] and elapsed >= rest_time:
-                            keyboard.press(accel_pwm['key'])
-                            accel_pwm['pressing'] = True
-                            accel_pwm['last_toggle'] = now
+                    accel_key = accel_pwm['key']  # e.g., 'w'
+
+                    # Normalize strength between 0 and 1
+                    strength = max(min(Accelerate / 1023.0, 2.0), 0.0)
+
+                    base_press = 0.8
+                    max_press = 0
+                    release_duration = 0  # short fixed release time
+
+                    if strength > 0.0000001:
+                        press_duration = base_press + (max_press - base_press) * strength
+                        #print(f"press_duration: {press_duration}")
+
+                        elapsed = now - accel_pwm['last_toggle']
+
+                        if accel_pwm['pressing']:  # currently pressed
+                            if elapsed >= press_duration:
+                                keyboard.release(accel_key)
+                                accel_pwm['pressing'] = False
+                                accel_pwm['last_toggle'] = now
+                        else:  # currently released
+                            if elapsed >= release_duration:
+                                keyboard.press(accel_key)
+                                accel_pwm['pressing'] = True
+                                accel_pwm['last_toggle'] = now
                     else:
                         if accel_pwm['pressing']:
-                            keyboard.release(accel_pwm['key'])
+                            keyboard.release(accel_key)
                             accel_pwm['pressing'] = False
+
+                if data.get('Shift'): #mudanças pin(5)
+                    Shift = data.get('Shift')
+                    if Shift is not None and Shift is not 0:
+                        print(f"mudanças: {Shift}")
+                        keyboard.press('shift')
+                    else:
+                        keyboard.release('shift')
 
                 if data.get('S'): #breaker pin(6)
                     BValue = data.get('S')
-                    if BValue is not None:
-                        print(f"BValue: {BValue}")
+                    if BValue is not None and BValue is not 0:
+                        print(f"s: {BValue}")
                         keyboard.press('s')
                     else:
                         keyboard.release('s')
 
-                if data.get('Shift'): #mudanças pin(5)
-                    BValue2 = data.get('Shift')
-                    if BValue2 is not None:
-                        print(f"mudanças: {BValue2}")
-                        if BValue2 > 0:
-                            keyboard.press('shift')
-                        else:
-                            keyboard.release('shift')
-
                 if data.get('H'): #Horn pin(7)
-                    BValue3 = data.get('H')
-                    if BValue3 is not None: 
-                        print(f"Horn: {BValue3}")
-                        if BValue3 > 0:
-                            keyboard.press('h')
-                        else:
-                            keyboard.release('h')
+                    Horn = data.get('H')
+                    if Horn is not None and Horn is not 0: 
+                        print(f"Horn: {Horn}")
+                        keyboard.press('h')
+                    else:
+                        keyboard.release('h')
 
                 if data.get('IO'): #Horn pin(4)
                     BValue4 = data.get('IO')
-                    if BValue4 is not None: 
-                        #print(f"IO: {BValue4}")
+                    if BValue4 is not None and BValue4 is not 0: 
+                        print(f"IO: {BValue4}")
                         if BValue4:
+                            data.clear()
+                            print(f"data: {data}")
                             On = False
 
     else:
         print("Invalid command. Try again.\n")
         continue    
+
+
 
