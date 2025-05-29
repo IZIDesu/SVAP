@@ -6,7 +6,6 @@ It has other fictures like autoclick keyboard or autoclick mouse with HUI suport
   
 All the interactions with SVAP are in CMD!  
 Becarfull with autoclicker it could become <span style="color:RED"> unstable!</span>  
-<span style="color:orange">This text is red</span>  
 I made it to make the user do what ever you would like but even, so becarfull!  
   
 ![image](https://github.com/user-attachments/assets/77e7fe60-0150-49f7-905a-e288aaf7a28e)  
