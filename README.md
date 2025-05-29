@@ -9,3 +9,5 @@ becarfull with autoclicker it could become unstable!
 i made it to make the user do what ever you would like but even, so becarfull!
 
 ![image](https://github.com/user-attachments/assets/77e7fe60-0150-49f7-905a-e288aaf7a28e)
+
+there are some abreviations of the recomendation trype if you would like to explore or add new one just change the code as you would like!
