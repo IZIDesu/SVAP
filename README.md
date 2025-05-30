@@ -12,3 +12,5 @@ I made it to make the user do what ever you would like, but becarfull!
   
 There are some abreviations of the commands.  
 If you would like to explore or add new one just change the code as you would like!  
+
+This project is in progression!
