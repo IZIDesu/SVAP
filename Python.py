@@ -7,7 +7,6 @@ def import_or_install(package):
         __import__(package)
     except ImportError:
         pip.main(['install', package])
-        __import__(package)
 
 
 
