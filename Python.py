@@ -1,10 +1,33 @@
-import keyboard
-from pynput.mouse import Button, Controller
-import threading
+
+import subprocess as sub
 import time
-import serial
-import serial.serialutil
-import serial.tools.list_ports
+
+try:
+    import keyboard
+except FileNotFoundError:
+    sub.run(["pip", "install --user keyboard"])
+    import keyboard
+
+try:
+    from pynput.mouse import Button, Controller
+except FileNotFoundError:
+    sub.run(["pip","install --user pinput"])
+    from pynput.mouse import Button, Controller
+try:
+    import threading
+except FileNotFoundError:
+    sub.run(["pip","install --user threading"])
+    import threading
+
+try:
+    import serial
+except FileNotFoundError:
+    sub.run(["pip","install --user pyserial"])
+    import serial
+    import serial.serialutil
+    import serial.tools.list_ports
+
+
 
 
 Running = True
@@ -274,8 +297,8 @@ while Running:
                     else:
                         turn_key = None
 
-                    base_press = 0.001
-                    max_press = 0.01
+                    base_press = 0.5
+                    max_press = 0
                     release_duration = 0  # fixed short release time
 
                     if turn_key:
