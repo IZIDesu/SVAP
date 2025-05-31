@@ -1,31 +1,29 @@
 
-import subprocess as sub
 import time
+import pip
 
-try:
-    import keyboard
-except:
-    sub.run(["pip", "install --user keyboard"])
-    import keyboard
+def import_or_install(package):
+    try:
+        __import__(package)
+    except ImportError:
+        pip.main(['install', package])
+        __import__(package)
 
-try:
-    from pynput.mouse import Button, Controller
-except:
-    sub.run(["pip","install --user pinput"])
-    from pynput.mouse import Button, Controller
-try:
-    import threading
-except:
-    sub.run(["pip","install --user threading"])
-    import threading
 
-try:
-    import serial
-except:
-    sub.run(["pip","install --user pyserial"])
-    import serial
-    import serial.serialutil
-    import serial.tools.list_ports
+
+import_or_install('keyboard')
+import keyboard
+import_or_install('pynput')
+from pynput.mouse import Button, Controller
+import_or_install('threading')
+import threading
+import_or_install('serial')
+import serial
+import serial.serialutil
+import serial.tools.list_ports
+
+import pip
+
 
 
 
