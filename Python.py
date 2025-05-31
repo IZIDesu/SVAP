@@ -7,6 +7,7 @@ def import_or_install(package):
         __import__(package)
     except ImportError:
         pip.main(['install', package])
+        __import__(package)
 
 
 
@@ -128,6 +129,8 @@ while Running:
             input_text = input("What key(s) do you want to press repeatedly?\n") # Include "space" as a word, not just a character
             repeat_count = int(input("How many times should each key be pressed?a\n"))
             press_duration = float(input("How long to hold each key? (in seconds)\n"))
+            start_duration = float(input("How long to start? (in seconds)\n"))
+            time.sleep(start_duration)
         except ValueError:
             print("Invalid number. Try again.")
             continue
