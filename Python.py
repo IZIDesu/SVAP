@@ -17,7 +17,7 @@ import_or_install('pynput')
 from pynput.mouse import Button, Controller
 import_or_install('threading')
 import threading
-import_or_install('serial')
+import_or_install('pyserial')
 import serial
 import serial.serialutil
 import serial.tools.list_ports
