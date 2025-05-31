@@ -4,24 +4,24 @@ import time
 
 try:
     import keyboard
-except FileNotFoundError:
+except:
     sub.run(["pip", "install --user keyboard"])
     import keyboard
 
 try:
     from pynput.mouse import Button, Controller
-except FileNotFoundError:
+except:
     sub.run(["pip","install --user pinput"])
     from pynput.mouse import Button, Controller
 try:
     import threading
-except FileNotFoundError:
+except:
     sub.run(["pip","install --user threading"])
     import threading
 
 try:
     import serial
-except FileNotFoundError:
+except:
     sub.run(["pip","install --user pyserial"])
     import serial
     import serial.serialutil
