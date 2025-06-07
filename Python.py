@@ -1,12 +1,14 @@
 
 import time
 import pip
+import sys
 
 def import_or_install(package):
     try:
         __import__(package)
     except ImportError:
         pip.main(['install', package])
+
 
 
 import_or_install('keyboard')
@@ -19,12 +21,63 @@ import_or_install('pyserial')
 import serial
 import serial.serialutil
 import serial.tools.list_ports
+import_or_install('random')
+import random
 
-import pip
+if sys.platform == "win32":
+    import_or_install('vgamepad')
+    import vgamepad as vg
+elif sys.platform.startswith("linux"):
+    import_or_install('evdev')
+    from evdev import UInput, ecodes as e
+    import os
+    from select import select
+else:
+    raise EnvironmentError("Unsupported OS")
 
+class GamepadWrapper:
+    def __init__(self):
+        if sys.platform == "win32":
+            self.pad = vg.VX360Gamepad()
+        elif sys.platform.startswith("linux"):
+            self.setup_linux_uinput()
 
+    def setup_linux_uinput(self):
+        capabilities = {
+            e.EV_ABS: [
+                (e.ABS_X, (-32768, 32767, 0, 0)),
+                (e.ABS_Y, (-32768, 32767, 0, 0)),
+                (e.ABS_Z, (0, 255, 0, 0)),
+                (e.ABS_RZ, (0, 255, 0, 0))
+            ]
+        }
+        self.ui = UInput(capabilities, name="PythonVirtualGamepad", bustype=e.BUS_USB)
 
+    def update_steering(self, value):
+        # Map 0-1023 to -32768 to 32767
+        mapped = int((value / 1023.0) * 65535 - 32768)
+        mapped = max(-32768, min(32767, mapped))
 
+        if sys.platform == "win32":
+            self.pad.left_joystick(x_value=mapped, y_value=0)
+            self.pad.update()
+        elif sys.platform.startswith("linux"):
+            self.ui.write(e.EV_ABS, e.ABS_X, mapped)
+            self.ui.syn()
+
+    def update_throttle(self, value):
+        # Map 0-1023 to 0-255
+        mapped = int((value / 1023.0) * 255)
+        mapped = max(0, min(255, mapped))
+
+        if sys.platform == "win32":
+            self.pad.right_trigger(value=mapped)
+            self.pad.update()
+        elif sys.platform.startswith("linux"):
+            self.ui.write(e.EV_ABS, e.ABS_RZ, mapped)
+            self.ui.syn()
+
+gp = GamepadWrapper()
 
 Running = True
 Repeating = False
@@ -77,13 +130,14 @@ def repeat_key_action(key, press_duration, repeat_count):
             keyboard.release(key)
 
     print("Stopped repeating.")
-
+'''
 # Stop function (for ESC key)
 def stop_repeat():
     global repeat_flag
     repeat_flag = False
     print("Repeat stopped with ESC.")
-
+'''
+    
 def toggle_repeat(key, press_duration, repeat_count):
     global Repeating, repeat_thread, repeat_flag
     if not Repeating:
@@ -111,9 +165,9 @@ def read_arduino():
         return data if data else None
     except:
         return None
-
+'''
 keyboard.add_hotkey('esc', stop_repeat)  # ESC to stop infinite loops
-
+'''
 
 while Running:
     input_command = input("\n\nWhat Command you would like? \ntry: \n R1- repeat the junction of leters (e.g. im here) \n R2 - R1 but leter by leter (e.g. i m space h e r e) \n M1 - mouse buttons \n M2 - mouse buttons \n CC - when you press the active combo it start pressing the key \n V - Simulator Mode (need arduino and some phericals) \n") # Include "space" as a word, not just a character
@@ -195,7 +249,7 @@ while Running:
 
 
             time.sleep(press_duration)
-    
+
     elif "CC" in input_command or "cc" in input_command:
         try:
             #hotkey = input("Enter the hotkey combination (e.g. ctrl+alt+h):\n").lower()
@@ -248,7 +302,7 @@ while Running:
 
         while On:
             try:
-                value = read_arduino()
+                #value = read_arduino()
                 line = arduino.readline().decode('utf-8').strip()
             except serial.serialutil.PortNotOpenError:
                 print("Arduino Port Not Found!\nPlug the arduino into USB port!\n")
@@ -257,31 +311,41 @@ while Running:
                 break
 
             if not line:
-                #print(f"line: {line}")
+                #print(f"Not line: {line}")
                 continue
             
             else:
                 # Parse the line
                 parts = line.split(',')
+                #print(f"parts: {parts}")
                 data = {}
                 for part in parts:
                     if ':' in part:
-                        key, val = part.split(':', 1)
-                        data[key.strip()] = int(val.strip())
+                        try:
+                            key, val = part.split(':', 1)
+                            data[key.strip()] = int(val.strip())
+                            #print(f"data: {data}")
+                        except ValueError:
+                            print(f"ValueError: {parts}")
 
                 #volante
-                #print(data)
+                #print(f"data: {data}")
                 
                 if data.get('V'):  # volante pin (A0)
                     Turn = data.get('V')
-                    print(f"Turn: {Turn}")
 
+                    '''
                     if Turn is None or Turn == 0:
                         Turn = 1
-
+                    '''
+                        
                     center = 512
                     now = time.time()
-
+                    
+                    print(f"Steer: {Turn}")
+                    gp.update_steering(Turn)
+                    
+                    '''
                     keyboard.release('a')
                     keyboard.release('d')
 
@@ -314,16 +378,21 @@ while Running:
                                 keyboard.press(turn_key)
                                 turn_key_state = True
                                 last_pwm_toggle_time = now
+                    '''
  
                 if data.get('W'):  # accelerator pin (A1)
                     Accelerate = data.get('W')
-                    print(f"Accelerate: {Accelerate}")
 
+                    '''
                     if Accelerate is None or Accelerate == 0:
                         Accelerate = 0
-
+                    '''
                     now = time.time()
 
+                    print(f"Throttle: {Accelerate}")
+                    gp.update_throttle(Accelerate)
+
+                    '''
                     accel_key = accel_pwm['key']  # e.g., 'w'
 
                     # Normalize strength between 0 and 1
@@ -332,6 +401,7 @@ while Running:
                     base_press = 0.8
                     max_press = 0
                     release_duration = 0  # short fixed release time
+
 
                     if strength > 0.0000001:
                         press_duration = base_press + (max_press - base_press) * strength
@@ -353,6 +423,7 @@ while Running:
                         if accel_pwm['pressing']:
                             keyboard.release(accel_key)
                             accel_pwm['pressing'] = False
+                '''
 
                 if data.get('Shift'): #mudanças pin(5)
                     Shift = data.get('Shift')
@@ -386,10 +457,27 @@ while Running:
                             data.clear()
                             print(f"data: {data}")
                             On = False
+                            break
+
+    elif "J" in input_command or "j" in input_command:
+        gp = GamepadWrapper()
+
+        try:
+            while True:
+                # Example simulation
+                fake_turn = random.randint(0, 1023)
+                fake_throttle = random.randint(0, 1023)
+
+                print(f"Steer: {fake_turn}, Throttle: {fake_throttle}")
+                gp.update_steering(fake_turn)
+                gp.update_throttle(fake_throttle)
+
+                time.sleep(0.05)
+
+        except KeyboardInterrupt:
+            print("\nExiting...")
 
     else:
         print("Invalid command. Try again.\n")
-        continue    
-
-
+        continue
 
