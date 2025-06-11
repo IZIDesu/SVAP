@@ -8,7 +8,8 @@ All the interactions with SVAP are on CMD!
 ⚠️Becarfull with autoclicker it could become <span style="color:#00ff00"> unstable!</span>⚠️  
 I made it to make the user do what ever you would like, but becarfull!  
   
-![image](https://github.com/user-attachments/assets/77e7fe60-0150-49f7-905a-e288aaf7a28e)  
+![image](https://github.com/user-attachments/assets/37233f8e-4237-4f46-847f-66b1619b9d4e)
+
   
 There are some abreviations of the commands.  
 If you would like to explore or add new one just change the code as you would like!  
