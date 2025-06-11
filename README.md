@@ -14,3 +14,6 @@ There are some abreviations of the commands.
 If you would like to explore or add new one just change the code as you would like!  
 
 This project is in progression!
+
+# How it works
+Run the python file and chose what you want to do.
