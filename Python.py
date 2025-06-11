@@ -207,7 +207,7 @@ keyboard.add_hotkey('esc', stop_repeat)  # ESC to stop infinite loops
 '''
 
 while Running:
-    input_command = input("\n\nWhat Command you would like? \ntry: \n R1- repeat the junction of leters (e.g. im here) \n R2 - R1 but leter by leter (e.g. i m space h e r e) \n M1 - mouse buttons \n M2 - mouse buttons \n CC - when you press the active combo it start pressing the key \n V - Simulator Mode (need arduino and some phericals) \n") # Include "space" as a word, not just a character
+    input_command = input("\n\nWhat Command you would like? \ntry: \n R1- repeat the junction of leters (e.g. im here) \n R2 - R1 but leter by leter (e.g. i m space h e r e) \n M1 - mouse buttons \n M2 - mouse buttons \n CC - when you press the active combo it start pressing the key \n MC - Mouse autoclicker with hotkey and infinite function \n V - Simulator Mode (need arduino and some phericals) \n") # Include "space" as a word, not just a character
 
     if "quit" in input_command.lower() or "exit" in input_command.lower():
         Running = False
