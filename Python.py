@@ -136,13 +136,50 @@ def stop_repeat():
     global repeat_flag
     repeat_flag = False
     print("Repeat stopped with ESC.")
+
 '''
+
+def repeat_button_action(key, press_duration, repeat_count):
+    global repeat_flag
+    repeat_flag = True
+    if repeat_count == -999:
+        while True:
+            if not repeat_flag:
+                break
+            if "left" in key or "L" in key or "l" in key:
+                Controller().click(Button.left, 1)
+
+            if "right" in key or "R" in key or "r" in key:
+                Controller().click(Button.right, 1)
+
+            if "mid" in key or "middle" in key or "m" in key or "M" in key:
+                Controller().click(Button.middle, 1)
+
+            time.sleep(press_duration)
+            print("Stopped repeating.")
+
+    else:
+        for _ in range(repeat_count):
+            if "left" in key or "L" in key or "l" in key:
+                Controller().click(Button.left, 1)
+
+            if "right" in key or "R" in key or "r" in key:
+                Controller().click(Button.right, 1)
+
+            if "mid" in key or "middle" in key or "m" in key or "M" in key:
+                Controller().click(Button.middle, 1)
+            time.sleep(press_duration)
     
-def toggle_repeat(key, press_duration, repeat_count):
+
+
+def toggle_repeat(key, press_duration, repeat_count, func):
     global Repeating, repeat_thread, repeat_flag
     if not Repeating:
         #print("Starting repeat...")
-        repeat_thread = threading.Thread(target=repeat_key_action, args=(key, press_duration, repeat_count))
+        if func == "K":
+            repeat_thread = threading.Thread(target=repeat_key_action, args=(key, press_duration, repeat_count))
+        elif func == "M":
+            repeat_thread = threading.Thread(target=repeat_button_action, args=(key, press_duration, repeat_count))
         repeat_thread.start()
         Repeating = True
     else:
@@ -250,6 +287,49 @@ while Running:
 
             time.sleep(press_duration)
 
+    elif "MC" in input_command or "mc" in input_command:
+        try:
+            #hotkey = input("Enter the hotkey combination (e.g. ctrl+alt+h):\n").lower()
+            input("redy to set a hotkey?")
+            while True:
+                time.sleep(1)
+                print("Press the hotkey combination now: \n")
+                hotkey = keyboard.read_hotkey(suppress=True)
+                time.sleep(0.3)# Small delay to avoid leftover keypresses
+                confirmation = input(f"do you want ({hotkey}) to be hotkey? (y/n)").strip().lower()
+                if "y" in confirmation or "Y" in confirmation:
+                    break
+                else:
+                    keyboard.read_hotkey(clear=True)
+                    continue
+
+            #input("redy to set a auto clickable key?")-
+            while True:
+                time.sleep(1)
+                repeat_key = input("Try 'left' or 'right' or 'middle' to chose the mouse botton \n")
+                confirmation = input(f"do you want ({repeat_key}) to be auto clickable? (y/n)").strip().lower()
+                if "y" in confirmation or "Y" in confirmation:
+                    break
+                else:
+                    continue
+
+            repeat_count = int(input("How many times to press the key? (-999 = infinite)\n"))
+            press_duration = float(input("How long to hold each key? (in seconds) \n'if you put infinite times do NOT put duration of 0 or lower than 0.01 it will become unstable and you will not be able to stop it'\n")) 
+            if press_duration == -999:
+                press_duration = 0.001
+            
+            if press_duration == -999:
+                press_duration = 0.001
+
+        except ValueError:
+            print("Invalid input. Try again.\n")
+            continue
+
+        # Bind toggle to the hotkey
+        keyboard.add_hotkey(hotkey, lambda: toggle_repeat(repeat_key, press_duration, repeat_count, "M"))
+        print(f"Hotkey '{hotkey}' will toggle repeating key '{repeat_key}'")
+
+
     elif "CC" in input_command or "cc" in input_command:
         try:
             #hotkey = input("Enter the hotkey combination (e.g. ctrl+alt+h):\n").lower()
@@ -285,7 +365,7 @@ while Running:
             continue
 
         # Bind toggle to the hotkey
-        keyboard.add_hotkey(hotkey, lambda: toggle_repeat(repeat_key, press_duration, repeat_count))
+        keyboard.add_hotkey(hotkey, lambda: toggle_repeat(repeat_key, press_duration, repeat_count, "K"))
         print(f"Hotkey '{hotkey}' will toggle repeating key '{repeat_key}'")
 
     elif "V" in input_command or "v" in input_command:
@@ -327,6 +407,7 @@ while Running:
                             #print(f"data: {data}")
                         except ValueError:
                             print(f"ValueError: {parts}")
+                            continue
 
                 #volante
                 #print(f"data: {data}")
